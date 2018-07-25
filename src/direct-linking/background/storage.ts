@@ -1,12 +1,9 @@
 import { browser, Tabs, Storage } from 'webextension-polyfill-ts'
 
-import { createPageFromTab } from '../../search/search-index-new'
-import {
-    FeatureStorage,
-    ManageableStorage,
-} from '../../search/search-index-new/storage'
+import { createPageFromTab } from '../../search'
+import { FeatureStorage, ManageableStorage } from '../../search/storage'
 import { STORAGE_KEYS as IDXING_PREF_KEYS } from '../../options/settings/constants'
-import { Tag } from '../../search/search-index-new/models'
+import { Tag } from '../../search/models'
 
 export const DIRECTLINK_TABLE = 'directLinks'
 export const ANNOTATION_TABLE = 'annotations'

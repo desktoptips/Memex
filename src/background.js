@@ -13,7 +13,6 @@ import {
     constants as blacklistConsts,
     blacklist,
 } from 'src/blacklist/background'
-import searchIndex from 'src/search'
 import analytics from 'src/analytics'
 import createNotif from 'src/util/notifications'
 import {
@@ -21,17 +20,14 @@ import {
     OPEN_OPTIONS,
     SEARCH_INJECTION_KEY,
 } from 'src/search-injection/constants'
-import db, { storageManager } from 'src/search/search-index-new'
-import * as models from 'src/search/search-index-new/models'
-import 'src/search/migration'
+import db, { storageManager } from 'src/search'
 import initSentry from './util/raven'
 import { USER_ID, generateTokenIfNot } from 'src/util/generate-token'
 import { API_HOST } from 'src/analytics/internal/constants'
 import { storageChangesManager } from 'src/util/storage-changes'
 
-window.index = searchIndex
-window.storage = db
-window.indexModels = models
+window.db = db
+window.storageMan = storageManager
 
 initSentry()
 
