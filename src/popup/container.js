@@ -16,7 +16,6 @@ import Button from './components/Button'
 import BlacklistConfirm from './components/BlacklistConfirm'
 import HistoryPauser from './components/HistoryPauser'
 import LinkButton from './components/LinkButton'
-import SplitButton from './components/SplitButton'
 import * as constants from './constants'
 import UpgradeButton from './components/UpgradeButton'
 import ButtonIcon from './components/ButtonIcon'
@@ -24,6 +23,7 @@ import ToggleTooltip from './components/ToggleTooltip'
 import styles from './components/Button.css'
 import NotificationContainer from './components/NotificationContainer'
 import BookmarkButton from './components/BookmarkButton'
+import BlacklistButton from './components/BlacklistButton'
 
 class PopupContainer extends Component {
     static propTypes = {
@@ -38,12 +38,10 @@ class PopupContainer extends Component {
         super(props)
 
         this.pageLookup = remoteFunction('pageLookup')
-        this.fetchBlacklist = remoteFunction('fetchBlacklist')
-        this.addToBlacklist = remoteFunction('addToBlacklist')
-        this.isURLBlacklisted = remoteFunction('isURLBlacklisted')
         this.toggleLoggingPause = remoteFunction('toggleLoggingPause')
         this.deletePages = remoteFunction('delPages')
         this.deletePagesByDomain = remoteFunction('delPagesByDomain')
+        this.isURLBlacklisted = remoteFunction('isURLBlacklisted')
         this.listsContainingPage = remoteFunction('fetchListPagesByUrl')
         this.fetchAllLists = remoteFunction('fetchAllLists')
         this.initTagSuggestions = remoteFunction('extendedSuggest')
@@ -62,7 +60,6 @@ class PopupContainer extends Component {
         page: null, // Contains the reverse index doc, if available
 
         // View switching flags
-        blacklistChoice: false,
         blacklistConfirm: false,
         tagMode: false,
         listMode: false,
@@ -160,14 +157,9 @@ class PopupContainer extends Component {
     }
 
     async getInitBlacklistBtnState() {
-        const blacklist = await this.fetchBlacklist()
+        const isBlacklisted = await this.isURLBlacklisted(this.state.url)
 
-        return {
-            isBlacklisted: await this.isURLBlacklisted(
-                this.state.url,
-                blacklist,
-            ),
-        }
+        return { isBlacklisted }
     }
 
     get blacklistBtnState() {
@@ -194,35 +186,6 @@ class PopupContainer extends Component {
     }
 
     closePopup = () => window.close()
-
-    onBlacklistBtnClick(domainDelete = false) {
-        const url = domainDelete
-            ? new URL(this.state.url).hostname
-            : this.state.url
-
-        return event => {
-            event.preventDefault()
-
-            analytics.trackEvent({
-                category: 'Popup',
-                action: domainDelete ? 'Blacklist domain' : 'Blacklist site',
-            })
-
-            this.processEvent({
-                type: domainDelete ? 'blacklistDomain' : 'blacklistSite',
-            })
-
-            this.addToBlacklist(url)
-            this.setState(state => ({
-                ...state,
-                blacklistChoice: false,
-                blacklistConfirm: true,
-                isBlacklisted: true,
-                url,
-                domainDelete,
-            }))
-        }
-    }
 
     onPauseConfirm = event => {
         event.preventDefault()
@@ -315,9 +278,14 @@ class PopupContainer extends Component {
         })
     }
 
-    // Hides full-popup confirm
+    postBlacklistHook = () =>
+        this.setState(state => ({
+            blacklistConfirm: true,
+            isBlacklisted: true,
+        }))
+
     resetBlacklistConfirmState = () =>
-        this.setState(state => ({ ...state, blacklistConfirm: false }))
+        this.setState(state => ({ blacklistConfirm: false }))
 
     handleDeleteBlacklistData = () => {
         analytics.trackEvent({
@@ -335,41 +303,6 @@ class PopupContainer extends Component {
 
     setBlacklistChoice = () =>
         this.setState(state => ({ ...state, blacklistChoice: true }))
-
-    renderBlacklistButton() {
-        if (!this.state.blacklistChoice) {
-            // Standard blacklist button
-            return this.blacklistBtnState ===
-                constants.BLACKLIST_BTN_STATE.BLACKLISTED ? (
-                <LinkButton
-                    href={`${constants.OPTIONS_URL}#/blacklist`}
-                    itemClass={styles.itemBlacklisted}
-                    btnClass={styles.itemBtnBlacklisted}
-                >
-                    This Page is Blacklisted. Undo>>
-                </LinkButton>
-            ) : (
-                <Button
-                    onClick={this.setBlacklistChoice}
-                    disabled={
-                        this.blacklistBtnState ===
-                        constants.BLACKLIST_BTN_STATE.DISABLED
-                    }
-                    btnClass={styles.blacklist}
-                >
-                    Blacklist Current Page
-                </Button>
-            )
-        }
-
-        // Domain vs URL choice button
-        return (
-            <SplitButton iconClass={styles.blacklist}>
-                <Button onClick={this.onBlacklistBtnClick(true)}>Domain</Button>
-                <Button onClick={this.onBlacklistBtnClick(false)}>URL</Button>
-            </SplitButton>
-        )
-    }
 
     renderPauseChoices() {
         const pauseValueToOption = (val, i) => (
@@ -481,7 +414,12 @@ class PopupContainer extends Component {
                 >
                     {this.renderPauseChoices()}
                 </HistoryPauser>
-                {this.renderBlacklistButton()}
+                <BlacklistButton
+                    postBlacklistHook={this.postBlacklistHook}
+                    isDisabled={!this.state.isLoggable}
+                    isBlacklisted={this.state.isBlacklisted}
+                    url={this.state.url}
+                />
                 <hr />
                 <ToggleTooltip
                     isChecked={this.state.isTooltipEnabled}
