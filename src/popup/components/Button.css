@@ -145,13 +145,13 @@
     outline: 0;
 }
 
-.bmk {
+.bookmarkedBtn {
     background: url('/img/star_full.svg');
     background-repeat: no-repeat;
     background-size: 20px;
 }
 
-.notBmk {
+.unbookmarkedBtn {
     background-image: url('/img/star_empty.svg');
     background-repeat: no-repeat;
     background-size: 20px;

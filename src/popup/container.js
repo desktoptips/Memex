@@ -23,6 +23,7 @@ import ButtonIcon from './components/ButtonIcon'
 import ToggleTooltip from './components/ToggleTooltip'
 import styles from './components/Button.css'
 import NotificationContainer from './components/NotificationContainer'
+import BookmarkButton from './components/BookmarkButton'
 
 class PopupContainer extends Component {
     static propTypes = {
@@ -43,8 +44,6 @@ class PopupContainer extends Component {
         this.toggleLoggingPause = remoteFunction('toggleLoggingPause')
         this.deletePages = remoteFunction('delPages')
         this.deletePagesByDomain = remoteFunction('delPagesByDomain')
-        this.removeBookmarkByUrl = remoteFunction('delBookmark')
-        this.createBookmarkByUrl = remoteFunction('addBookmark')
         this.listsContainingPage = remoteFunction('fetchListPagesByUrl')
         this.fetchAllLists = remoteFunction('fetchAllLists')
         this.initTagSuggestions = remoteFunction('extendedSuggest')
@@ -185,21 +184,6 @@ class PopupContainer extends Component {
         return !this.state.isLoggable
     }
 
-    get bookmarkBtnState() {
-        // Cannot bookmark
-        if (!this.state.isLoggable || this.state.isBlacklisted) {
-            return constants.BOOKMARK_BTN_STATE.DISABLED
-        }
-
-        // Already a bookmark
-        if (this.state.page != null && this.state.page.hasBookmark) {
-            return constants.BOOKMARK_BTN_STATE.BOOKMARK
-        }
-
-        // Not yet bookmarked
-        return constants.BOOKMARK_BTN_STATE.UNBOOKMARK
-    }
-
     get pageTags() {
         // No assoc. page indexed, or tagless page
         if (this.state.page == null || this.state.page.tags == null) {
@@ -208,6 +192,8 @@ class PopupContainer extends Component {
 
         return this.state.page.tags
     }
+
+    closePopup = () => window.close()
 
     onBlacklistBtnClick(domainDelete = false) {
         const url = domainDelete
@@ -395,22 +381,6 @@ class PopupContainer extends Component {
         return this.props.pauseValues.map(pauseValueToOption)
     }
 
-    handleAddBookmark = () => {
-        if (this.bookmarkBtnState === constants.BOOKMARK_BTN_STATE.UNBOOKMARK) {
-            this.createBookmarkByUrl({
-                url: this.state.url,
-                tabId: this.state.tabID,
-            })
-        } else if (
-            this.bookmarkBtnState === constants.BOOKMARK_BTN_STATE.BOOKMARK
-        ) {
-            this.removeBookmarkByUrl({ url: this.state.url })
-        }
-
-        updateLastActive() // Consider user active (analytics)
-        window.close()
-    }
-
     toggleTagPopup = () =>
         this.setState(state => ({
             ...state,
@@ -488,24 +458,18 @@ class PopupContainer extends Component {
 
         return (
             <div>
-                <Button
-                    onClick={this.handleAddBookmark}
-                    btnClass={
-                        this.bookmarkBtnState ===
-                        constants.BOOKMARK_BTN_STATE.BOOKMARK
-                            ? styles.bmk
-                            : styles.notBmk
+                <BookmarkButton
+                    isDisabled={
+                        !this.state.isLoggable || this.state.isBlacklisted
                     }
-                    disabled={
-                        this.bookmarkBtnState ===
-                        constants.BOOKMARK_BTN_STATE.DISABLED
+                    isBookmarked={
+                        this.state.page != null && this.state.page.hasBookmark
                     }
-                >
-                    {this.bookmarkBtnState ===
-                    constants.BOOKMARK_BTN_STATE.BOOKMARK
-                        ? 'Unbookmark this Page'
-                        : 'Bookmark this Page'}
-                </Button>
+                    url={this.state.url}
+                    tabId={this.state.tabID}
+                    updateLastActive={updateLastActive}
+                    closePopup={this.closePopup}
+                />
                 {this.renderTagButton()}
                 {this.renderAddToList()}
                 <hr />
